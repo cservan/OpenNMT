@@ -18,6 +18,8 @@ cmd:option('-train_tgt', '', [[Path to the training target data]])
 cmd:option('-valid_src', '', [[Path to the validation source data]])
 cmd:option('-valid_tgt', '', [[Path to the validation target data]])
 
+cmd:option('-topic_scores', '', [[Path to the topic scores for the source data]])
+
 cmd:option('-save_data', '', [[Output file for the prepared data]])
 
 cmd:option('-src_vocab_size', 50000, [[Size of the source vocabulary]])
@@ -160,7 +162,7 @@ local function vecToTensor(vec)
   return t
 end
 
-local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
+local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
   local src = tds.Vec()
   local srcFeatures = tds.Vec()
 
@@ -169,13 +171,21 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
 
   local sizes = tds.Vec()
 
+  local topicScores = tds.Vec()
+  
   local count = 0
   local ignored = 0
 
   local srcReader = onmt.utils.FileReader.new(srcFile)
   local tgtReader = onmt.utils.FileReader.new(tgtFile)
+  local topicReader 
+  if topicScoresFile:len() > 0 then
+    topicReader = onmt.utils.FileReader.new(topicScoresFile)
+  end
+  
 
   while true do
+    local topicScoresStr = topicReader:next()
     local srcTokens = srcReader:next()
     local tgtTokens = tgtReader:next()
 
@@ -185,6 +195,14 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
       end
       break
     end
+  if topicScoresFile:len() > 0 then
+    if topicScoresStr == nil then
+        if srcTokens ~= nil and tgtTokens ~= nil 
+          print('WARNING: topic and training data do not have the same number of sentences')
+          break
+        end
+    end
+  end
 
     if #srcTokens > 0 and #srcTokens <= opt.src_seq_length
     and #tgtTokens > 0 and #tgtTokens <= opt.tgt_seq_length then
@@ -203,7 +221,15 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
       if #tgtDicts.features > 0 then
         tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
       end
-
+      if #srcDicts.features > 0 then
+        tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
+      end
+      if #topicScoresStr > 0 then
+          local l_inc=0
+          for l_inc=1,#topicScoresStr do
+            topicScores:insert(tonumber(topicScoresStr[l_inc]))
+          end
+      end
       sizes:insert(#srcWords)
     else
       ignored = ignored + 1
@@ -218,6 +244,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
 
   srcReader:close()
   tgtReader:close()
+  topicReader:close()
 
   local function reorderData(perm)
     src = onmt.utils.Table.reorder(src, perm, true)
@@ -228,6 +255,9 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
     end
     if #tgtDicts.features > 0 then
       tgtFeatures = onmt.utils.Table.reorder(tgtFeatures, perm, true)
+    end
+    if #topicScores > 0 then
+      topicScores = onmt.utils.Table.reorder(topicScores, perm, true)
     end
   end
 
@@ -249,6 +279,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
   local srcData = {
     words = src,
     features = srcFeatures
+    
   }
 
   local tgtData = {
@@ -256,7 +287,14 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
     features = tgtFeatures
   }
 
-  return srcData, tgtData
+  return srcData, tgtData, topicScores
+end
+
+local function loadTopics(dataFile)
+  print('Reading topic scores from \'' .. dataFile .. '\'...')
+  local topicScores_toReturn::loadFile(dataFile)
+  print('Loaded ' .. topicScores_toReturn:size() .. ' lines')
+  return topicScores_toReturn
 end
 
 local function main()
@@ -277,17 +315,18 @@ local function main()
                                   opt.src_vocab_size, opt.features_vocabs_prefix)
   data.dicts.tgt = initVocabulary('target', opt.train_tgt, opt.tgt_vocab,
                                   opt.tgt_vocab_size, opt.features_vocabs_prefix)
-
+  
   print('Preparing training data...')
+  
   data.train = {}
-  data.train.src, data.train.tgt = makeData(opt.train_src, opt.train_tgt,
-                                            data.dicts.src, data.dicts.tgt)
+  data.train.src, data.train.tgt, data.train.scores = makeData(opt.train_src, opt.train_tgt,
+                                            data.dicts.src, data.dicts.tgt, opt.topic_scores)
   print('')
 
   print('Preparing validation data...')
   data.valid = {}
-  data.valid.src, data.valid.tgt = makeData(opt.valid_src, opt.valid_tgt,
-                                            data.dicts.src, data.dicts.tgt)
+  data.valid.src, data.valid.tgt, data.valid.scores  = makeData(opt.valid_src, opt.valid_tgt,
+                                            data.dicts.src, data.dicts.tgt, opt.topic_scores)
   print('')
 
   if opt.src_vocab:len() == 0 then

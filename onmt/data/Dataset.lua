@@ -4,7 +4,7 @@ local Dataset = torch.class("Dataset")
 --[[ Initialize a data object given aligned tables of IntTensors `srcData`
   and `tgtData`.
 --]]
-function Dataset:__init(srcData, tgtData)
+function Dataset:__init(srcData, tgtData, scoreData)
 
   self.src = srcData.words
   self.srcFeatures = srcData.features
@@ -12,6 +12,9 @@ function Dataset:__init(srcData, tgtData)
   if tgtData ~= nil then
     self.tgt = tgtData.words
     self.tgtFeatures = tgtData.features
+  end
+  if scoreData ~= nil then
+      self.scores = scoreData
   end
 end
 
@@ -64,7 +67,7 @@ end
 --[[ Get `Batch` number `idx`. If nil make a batch of all the data. ]]
 function Dataset:getBatch(idx)
   if idx == nil or self.batchRange == nil then
-    return onmt.data.Batch.new(self.src, self.srcFeatures, self.tgt, self.tgtFeatures)
+    return onmt.data.Batch.new(self.src, self.srcFeatures, self.tgt, self.tgtFeatures, self.scores)
   end
 
   local rangeStart = self.batchRange[idx]["begin"]
@@ -75,6 +78,8 @@ function Dataset:getBatch(idx)
 
   local srcFeatures = {}
   local tgtFeatures = {}
+
+  local scores = {}
 
   for i = rangeStart, rangeEnd do
     table.insert(src, self.src[i])
@@ -87,9 +92,13 @@ function Dataset:getBatch(idx)
     if self.tgtFeatures[i] then
       table.insert(tgtFeatures, self.tgtFeatures[i])
     end
+    
+    if self.scores[i] then
+      table.insert(scores, self.scores[i])
+    end
   end
 
-  return onmt.data.Batch.new(src, srcFeatures, tgt, tgtFeatures)
+  return onmt.data.Batch.new(src, srcFeatures, tgt, tgtFeatures, scores)
 end
 
 return Dataset

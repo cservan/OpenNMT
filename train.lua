@@ -479,9 +479,9 @@ local function main()
 
   local dataset = torch.load(opt.data, 'binary', false)
 
-  local trainData = onmt.data.Dataset.new(dataset.train.src, dataset.train.tgt)
-  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt)
-
+  local trainData = onmt.data.Dataset.new(dataset.train.src, dataset.train.tgt, dataset.train.scores)
+  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt, dataset.train.scores)
+-- Point of where am I today!
   trainData:setBatchSize(opt.max_batch_size)
   validData:setBatchSize(opt.max_batch_size)
 
