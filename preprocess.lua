@@ -226,9 +226,11 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
       end
       if #topicScoresStr > 0 then
           local l_inc=0
+          local localTopicScores=tds.Vec()
           for l_inc=1,#topicScoresStr do
-            topicScores:insert(tonumber(topicScoresStr[l_inc]))
+            localTopicScores:insert(tonumber(topicScoresStr[l_inc]))
           end
+          topicScores:insert(localTopicScores:clone())
       end
       sizes:insert(#srcWords)
     else
