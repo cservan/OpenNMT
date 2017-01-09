@@ -197,7 +197,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
     end
   if topicScoresFile:len() > 0 then
     if topicScoresStr == nil then
-        if srcTokens ~= nil and tgtTokens ~= nil 
+        if srcTokens ~= nil and tgtTokens ~= nil then
           print('WARNING: topic and training data do not have the same number of sentences')
           break
         end
@@ -290,12 +290,6 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
   return srcData, tgtData, topicScores
 end
 
-local function loadTopics(dataFile)
-  print('Reading topic scores from \'' .. dataFile .. '\'...')
-  local topicScores_toReturn::loadFile(dataFile)
-  print('Loaded ' .. topicScores_toReturn:size() .. ' lines')
-  return topicScores_toReturn
-end
 
 local function main()
   local requiredOptions = {

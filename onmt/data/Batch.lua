@@ -57,10 +57,11 @@ Parameters:
   * `tgt` - 2D table of target batch indices
   * `tgtFeatures` - 2D table of target batch features (opt)
 --]]
-function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
+function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
   src = src or {}
   srcFeatures = srcFeatures or {}
   tgtFeatures = tgtFeatures or {}
+  scores = scores or {}
 
   if tgt ~= nil then
     assert(#src == #tgt, "source and target must have the same batch size")
@@ -81,6 +82,13 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
     for _ = 1, #srcFeatures[1] do
       table.insert(self.sourceInputFeatures, sourceSeq:clone())
       table.insert(self.sourceInputRevFeatures, sourceSeq:clone())
+    end
+  end
+
+  if #scores > 0 then
+    for _ = 1, #scores[1] do
+      table.insert(self.sourceScores, sourceSeq:clone())
+      table.insert(self.sourceScoresRev, sourceSeq:clone())
     end
   end
 
@@ -121,6 +129,14 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
 
       self.sourceInputFeatures[i][{{sourceOffset, self.sourceLength}, b}]:copy(sourceInputFeatures)
       self.sourceInputRevFeatures[i][{{1, self.sourceSize[b]}, b}]:copy(sourceInputRevFeatures)
+    end
+
+    for i = 1, #self.sourceScores do
+      local sourceScores = scores[b][i]
+      local sourceScoresRev = scores[b][i]:index(1, torch.linspace(self.sourceSize[b], 1, self.sourceSize[b]):long())
+
+      self.sourceScores[i][{{sourceOffset, self.sourceLength}, b}]:copy(sourceScores)
+      self.sourceScoresRev[i][{{1, self.sourceSize[b]}, b}]:copy(sourceScoresRev)
     end
 
     if tgt ~= nil then

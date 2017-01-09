@@ -1,4 +1,4 @@
-local function buildInputNetwork(opt, dicts, pretrainedWords, fixWords)
+local function buildInputNetwork(opt, dicts, scores, pretrainedWords, fixWords)
   local wordEmbedding = onmt.WordEmbedding.new(dicts.words:size(), -- vocab size
                                                opt.word_vec_size,
                                                pretrainedWords,
@@ -26,6 +26,12 @@ local function buildInputNetwork(opt, dicts, pretrainedWords, fixWords)
     inputSize = inputSize + featEmbedding.outputSize
   end
 
+  if #scores > 0 then
+    local addScores = onmt.FeaturesEmbedding.new(scores)
+    inputs:add(addScores)
+    inputSize = inputSize + scores:size()
+  end
+
   local inputNetwork
 
   if multiInputs then
@@ -39,8 +45,8 @@ local function buildInputNetwork(opt, dicts, pretrainedWords, fixWords)
   return inputNetwork, inputSize
 end
 
-local function buildEncoder(opt, dicts)
-  local inputNetwork, inputSize = buildInputNetwork(opt, dicts, opt.pre_word_vecs_enc, opt.fix_word_vecs_enc)
+local function buildEncoder(opt, dicts, scores)
+  local inputNetwork, inputSize = buildInputNetwork(opt, dicts, scores, opt.pre_word_vecs_enc, opt.fix_word_vecs_enc)
 
   if opt.brnn then
     -- Compute rnn hidden size depending on hidden states merge action.
