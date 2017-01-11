@@ -15,10 +15,11 @@ cmd:option('-config', '', [[Read options from this file]])
 
 cmd:option('-train_src', '', [[Path to the training source data]])
 cmd:option('-train_tgt', '', [[Path to the training target data]])
+cmd:option('-train_scores', '', [[Path to the topic scores for the source data]])
+
 cmd:option('-valid_src', '', [[Path to the validation source data]])
 cmd:option('-valid_tgt', '', [[Path to the validation target data]])
-
-cmd:option('-topic_scores', '', [[Path to the topic scores for the source data]])
+cmd:option('-valid_scores', '', [[Path to the topic scores for the source data]])
 
 cmd:option('-save_data', '', [[Output file for the prepared data]])
 
@@ -162,7 +163,7 @@ local function vecToTensor(vec)
   return t
 end
 
-local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
+local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
   local src = tds.Vec()
   local srcFeatures = tds.Vec()
 
@@ -178,14 +179,17 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
 
   local srcReader = onmt.utils.FileReader.new(srcFile)
   local tgtReader = onmt.utils.FileReader.new(tgtFile)
-  local topicReader 
-  if topicScoresFile:len() > 0 then
-    topicReader = onmt.utils.FileReader.new(topicScoresFile)
+  local scoresReader 
+  if scoresFile:len() > 0 then
+    scoresReader = onmt.utils.FileReader.new(scoresFile)
   end
   
 
   while true do
-    local topicScoresStr = topicReader:next()
+    local scoresStr = nil
+    if scoresFile:len() > 0 then
+      scoresStr = scoresReader:next()
+    end
     local srcTokens = srcReader:next()
     local tgtTokens = tgtReader:next()
 
@@ -195,8 +199,8 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
       end
       break
     end
-  if topicScoresFile:len() > 0 then
-    if topicScoresStr == nil then
+  if scoresFile:len() > 0 then
+    if scoresStr == nil then
         if srcTokens ~= nil and tgtTokens ~= nil then
           print('WARNING: topic and training data do not have the same number of sentences')
           break
@@ -224,11 +228,11 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
       if #srcDicts.features > 0 then
         tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
       end
-      if #topicScoresStr > 0 then
+      if scoresStr ~= nil then
           local l_inc=0
           local localTopicScores=tds.Vec()
-          for l_inc=1,#topicScoresStr do
-            localTopicScores:insert(tonumber(topicScoresStr[l_inc]))
+          for l_inc=1,#scoresStr do
+            localTopicScores:insert(tonumber(scoresStr[l_inc]))
           end
           topicScores:insert(localTopicScores:clone())
       end
@@ -246,7 +250,9 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, topicScoresFile)
 
   srcReader:close()
   tgtReader:close()
-  topicReader:close()
+  if scoresFile:len() > 0 then
+    scoresReader:close()
+  end
 
   local function reorderData(perm)
     src = onmt.utils.Table.reorder(src, perm, true)

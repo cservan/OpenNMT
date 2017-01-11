@@ -78,6 +78,9 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
   self.sourceInputFeatures = {}
   self.sourceInputRevFeatures = {}
 
+  self.sourceScores = {}
+  self.sourceScoresRev = {}
+  
   if #srcFeatures > 0 then
     for _ = 1, #srcFeatures[1] do
       table.insert(self.sourceInputFeatures, sourceSeq:clone())
