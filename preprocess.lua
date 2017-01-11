@@ -322,13 +322,13 @@ local function main()
   
   data.train = {}
   data.train.src, data.train.tgt, data.train.scores = makeData(opt.train_src, opt.train_tgt,
-                                            data.dicts.src, data.dicts.tgt, opt.topic_scores)
+                                            data.dicts.src, data.dicts.tgt, opt.train_scores)
   print('')
 
   print('Preparing validation data...')
   data.valid = {}
   data.valid.src, data.valid.tgt, data.valid.scores  = makeData(opt.valid_src, opt.valid_tgt,
-                                            data.dicts.src, data.dicts.tgt, opt.topic_scores)
+                                            data.dicts.src, data.dicts.tgt, opt.valid_scores)
   print('')
 
   if opt.src_vocab:len() == 0 then
