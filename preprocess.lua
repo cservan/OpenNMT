@@ -172,7 +172,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
 
   local sizes = tds.Vec()
 
-  local topicScores = tds.Vec()
+  local scores = {}
   
   local count = 0
   local ignored = 0
@@ -230,11 +230,24 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
       end
       if scoresStr ~= nil then
           local l_inc=0
-          local localTopicScores=tds.Vec()
+          local localScoresWords={}
+          local localScoresSent={}
           for l_inc=1,#scoresStr do
-            localTopicScores:insert(tonumber(scoresStr[l_inc]))
+            table.insert(localScoresWords,tonumber(scoresStr[l_inc]))
           end
-          topicScores:insert(localTopicScores:clone())
+          local l_inc_wds=0
+          for l_inc_wds=1,#srcWords do
+            if localScoresWords == nil then
+                print ('nil value')
+--             else
+--                 print ('TEST BEGIN')
+--                 print (localScoresWords)
+--                 print ('TEST END')
+            end            
+            table.insert(localScoresSent,localScoresWords)
+          end
+--           print (localScoresSent)
+          table.insert(scores,localScoresSent)
       end
       sizes:insert(#srcWords)
     else
@@ -264,8 +277,22 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
     if #tgtDicts.features > 0 then
       tgtFeatures = onmt.utils.Table.reorder(tgtFeatures, perm, true)
     end
-    if #topicScores > 0 then
-      topicScores = onmt.utils.Table.reorder(topicScores, perm, true)
+    if #scores > 0 then
+--         if scores == nil then
+--             print ("nil")
+--         end
+            
+--       print (#src)
+--       print (#tgt)
+--       print (#scores)
+--       print (#scores[1])
+--       scores = 
+        local newTab = {}
+        local l_inc = 0
+        for l_inc = 1, #scores do
+          table.insert(newTab,scores[perm[l_inc]])
+        end
+     scores=newTab
     end
   end
 
@@ -295,7 +322,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
     features = tgtFeatures
   }
 
-  return srcData, tgtData, topicScores
+  return srcData, tgtData, scores
 end
 
 
