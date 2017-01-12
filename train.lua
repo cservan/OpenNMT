@@ -482,7 +482,7 @@ local function main()
   local dataset = torch.load(opt.data, 'binary', false)
 
   local trainData = onmt.data.Dataset.new(dataset.train.src, dataset.train.tgt, dataset.train.scores)
-  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt, dataset.train.scores)
+  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt, dataset.valid.scores)
 -- Point of where am I today!
   trainData:setBatchSize(opt.max_batch_size)
   validData:setBatchSize(opt.max_batch_size)
@@ -496,7 +496,9 @@ local function main()
                    trainData.maxSourceLength, trainData.maxTargetLength)
     _G.logger:info(' * number of training sentences: %d', #trainData.src)
     _G.logger:info(' * maximum batch size: %d', opt.max_batch_size)
-    _G.logger:info(' * number of scores: %d', #dataset.train.scores)
+    _G.logger:info(' * number of training scores: %d', #dataset.train.scores)
+    _G.logger:info(' * number of validation sentences: %d', #validData.src)
+    _G.logger:info(' * number of validation scores: %d', #dataset.valid.scores)
  else
     local metadata = {
       options = opt,
@@ -513,7 +515,7 @@ local function main()
         target = trainData.maxTargetLength
       },
       trainingSentences = #trainData.src,
-      trainingScores= #trainData.scores
+      trainingScores= #dataset.train.scores
     }
 
     onmt.utils.Log.logJson(metadata)

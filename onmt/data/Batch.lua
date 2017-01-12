@@ -72,14 +72,19 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
   self.sourceLength, self.sourceSize = getLength(src)
 
   local sourceSeq = torch.IntTensor(self.sourceLength, self.size):fill(onmt.Constants.PAD)
+  
+  if #scores > 0 then
+    self.sourceScores = torch.FloatTensor(self.size, scores[1]:size(1) ):zero()
+  end
+  
   self.sourceInput = sourceSeq:clone()
   self.sourceInputRev = sourceSeq:clone()
 
   self.sourceInputFeatures = {}
   self.sourceInputRevFeatures = {}
 
-  self.sourceScores = {}
-  self.sourceScoresRev = {}
+  -- self.sourceScores = {}
+  -- self.sourceScoresRev = {}
   
   if #srcFeatures > 0 then
     for _ = 1, #srcFeatures[1] do
@@ -88,12 +93,12 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
     end
   end
 
-  if #scores > 0 then
-    for _ = 1, #scores[1] do
-      table.insert(self.sourceScores, sourceSeq:clone())
-      table.insert(self.sourceScoresRev, sourceSeq:clone())
-    end
-  end
+  -- if #scores > 0 then
+    -- for _ = 1, #scores[1] do
+      -- table.insert(self.sourceScores, sourceData:clone())
+      -- table.insert(self.sourceScoresRev, sourceData:clone())
+    -- end
+  -- end
 
   if tgt ~= nil then
     self.targetLength, self.targetSize, self.targetNonZeros = getLength(tgt, 1)
@@ -134,12 +139,8 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
       self.sourceInputRevFeatures[i][{{1, self.sourceSize[b]}, b}]:copy(sourceInputRevFeatures)
     end
 
-    for i = 1, #self.sourceScores do
-      local sourceScores = scores[b][i]
-      local sourceScoresRev = scores[b][i]:index(1, torch.linspace(self.sourceSize[b], 1, self.sourceSize[b]):long())
-
-      self.sourceScores[i][{{sourceOffset, self.sourceLength}, b}]:copy(sourceScores)
-      self.sourceScoresRev[i][{{1, self.sourceSize[b]}, b}]:copy(sourceScoresRev)
+    if #scores > 0 then
+        self.sourceScores[b]:copy(scores[b])
     end
 
     if tgt ~= nil then
@@ -234,7 +235,12 @@ function Batch:getSourceInput(t)
     inputs = { inputs }
     addInputFeatures(inputs, self.sourceInputFeatures, t)
   end
-
+  if self.sourceScores ~= nil then
+    if type(inputs) ~= 'table' then
+      inputs = { inputs }
+    end
+    table.insert(inputs, self.sourceScores)
+  end
   return inputs
 end
 

@@ -180,7 +180,8 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
 
   local sizes = tds.Vec()
 
-  local scores = {}
+  local scoresTable = {}
+  local scoresNumber = 0
   
   local count = 0
   local ignored = 0
@@ -210,7 +211,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
   if scoresFile:len() > 0 then
     if scoresStr == nil then
         if srcTokens ~= nil and tgtTokens ~= nil then
-          print('WARNING: topic and training data do not have the same number of sentences')
+          print('WARNING: scores and training data do not have the same number of sentences')
           break
         end
     end
@@ -233,25 +234,26 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
         tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
       end
       if scoresStr ~= nil then
+          scoresNumber=#scoresStr
           local l_inc=0
           local localScoresWords={}
           local localScoresSent={}
           for l_inc=1,#scoresStr do
-            table.insert(localScoresWords,tonumber(scoresStr[l_inc]))
+            table.insert(localScoresSent,tonumber(scoresStr[l_inc]))
           end
           local l_inc_wds=0
-          for l_inc_wds=1,#srcWords do
-            if localScoresWords == nil then
-                print ('nil value')
---             else
---                 print ('TEST BEGIN')
---                 print (localScoresWords)
---                 print ('TEST END')
-            end            
-            table.insert(localScoresSent,localScoresWords)
-          end
+          -- for l_inc_wds=1,#srcWords do
+            -- if localScoresWords == nil then
+                -- print ('nil value')
+-- --             else
+-- --                 print ('TEST BEGIN')
+-- --                 print (localScoresWords)
+-- --                 print ('TEST END')
+            -- end            
+            -- table.insert(localScoresSent,localScoresWords)
+          -- end
 --           print (localScoresSent)
-          table.insert(scores,localScoresSent)
+          table.insert(scoresTable,torch.FloatTensor(localScoresSent))
       end
       sizes:insert(#srcWords)
     else
@@ -281,22 +283,22 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
     if #tgtDicts.features > 0 then
       tgtFeatures = onmt.utils.Table.reorder(tgtFeatures, perm, true)
     end
-    if #scores > 0 then
---         if scores == nil then
+    if #scoresTable > 0 then
+--         if scoresTable == nil then
 --             print ("nil")
 --         end
             
 --       print (#src)
 --       print (#tgt)
---       print (#scores)
---       print (#scores[1])
---       scores = 
+--       print (#scoresTable)
+--       print (#scoresTable[1])
+--       scoresTable = 
         local newTab = {}
         local l_inc = 0
-        for l_inc = 1, #scores do
-          table.insert(newTab,scores[perm[l_inc]])
+        for l_inc = 1, #scoresTable do
+          table.insert(newTab,scoresTable[perm[l_inc]])
         end
-     scores=newTab
+     scoresTable=newTab
     end
   end
 
@@ -325,8 +327,33 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
     words = tgt,
     features = tgtFeatures
   }
+  -- print (scoresTable)
+  -- local scores = torch.Tensor(#src, opt.src_seq_length,scoresNumber)
+  -- print (scoresTable)
+  -- local scores = torch.Tensor(#src, opt.src_seq_length,scoresNumber):zero()
+  -- local l_i
+  -- local l_j
+  -- local l_k
+  -- for l_i = 1,#scoresTable do
+    -- for l_j = 1,#scoresTable[l_i] do
+      -- for l_k = 1,#scoresTable[l_i][l_j] do
+        -- scores[l_i][l_j][l_k]=scoresTable[l_i][l_j][l_k]
+      -- end
+    -- end
+  -- end
+  -- _G.logger:info(scores[1][1][1])
+  -- _G.logger:info(scores[1][1][2])
+  -- _G.logger:info(scores[1][1][3])
+  -- _G.logger:info(scores[1][1][4])
+  -- _G.logger:info(scores[1][1][5])
+  -- _G.logger:info(scores[1][1][6])
+  -- _G.logger:info(scores[1][1][7])
+  -- _G.logger:info(scores[1][1][8])
+  -- _G.logger:info(scores[1][1][9])
+  -- _G.logger:info(scores[1][1][10])
+  -- print (scores)
 
-  return srcData, tgtData, scores
+  return srcData, tgtData, scoresTable
 end
 
 
@@ -340,6 +367,8 @@ local function main()
   }
 
   onmt.utils.Opt.init(opt, requiredOptions)
+
+  _G.logger = onmt.utils.Logger.new(opt.log_file, opt.disable_logs, opt.log_level)
 
   local data = {}
 
