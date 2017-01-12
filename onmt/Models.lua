@@ -85,7 +85,7 @@ local function buildDecoder(opt, dicts, verbose)
 
   if opt.input_feed == 1 then
     if verbose then
-      print(" * using input feeding")
+      _G.logger:info(" * using input feeding")
     end
     inputSize = inputSize + opt.rnn_size
   end
