@@ -16,6 +16,7 @@ function Dataset:__init(srcData, tgtData, scoreData)
   if scoreData ~= nil then
       self.scores = scoreData
   end
+  
 end
 
 --[[ Setup up the training data to respect `maxBatchSize`. ]]

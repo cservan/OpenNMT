@@ -17,6 +17,7 @@ Example:
 
 ]]
 function Memory.optimize(model, criterion, batch, verbose)
+
   if verbose then
     _G.logger:info('Preparing memory optimization...')
   end

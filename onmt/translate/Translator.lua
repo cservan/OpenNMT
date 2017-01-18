@@ -45,16 +45,22 @@ function Translator:__init(args)
   end
 end
 
-function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
+function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
   local srcData = {}
   srcData.words = {}
   srcData.features = {}
 
   local tgtData
+  local inputScoresData
+  
   if goldBatch ~= nil then
     tgtData = {}
     tgtData.words = {}
     tgtData.features = {}
+  end
+
+  if inputScoresBatch ~= nil then
+    inputScoresData = {}
   end
 
   for b = 1, #srcBatch do
@@ -78,9 +84,12 @@ function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeature
                      onmt.utils.Features.generateTarget(self.dicts.tgt.features, goldFeaturesBatch[b]))
       end
     end
+    if inputScoresBatch ~= nil then
+      table.insert(inputScoresData,inputScoresBatch[b])
+    end
   end
 
-  return onmt.data.Dataset.new(srcData, tgtData)
+  return onmt.data.Dataset.new(srcData, tgtData, inputScoresData)
 end
 
 function Translator:buildTargetTokens(pred, predFeats, src, attn)
@@ -166,6 +175,7 @@ function Translator:translateBatch(batch)
     local input = torch.IntTensor(self.opt.beam_size, remainingSents)
     local inputFeatures = {}
     local sourceSizes = torch.IntTensor(remainingSents)
+    
 
     for b = 1, batch.size do
       if not beam[b].done then
@@ -189,8 +199,10 @@ function Translator:translateBatch(batch)
     for j = 1, #self.dicts.tgt.features do
       inputFeatures[j] = inputFeatures[j]:view(self.opt.beam_size * remainingSents)
     end
-
+    
+   
     local inputs
+    
     if #inputFeatures == 0 then
       inputs = input
     elseif #inputFeatures == 1 then
@@ -200,6 +212,7 @@ function Translator:translateBatch(batch)
       table.insert(inputs, inputFeatures)
     end
 
+    
     if batch.size > 1 then
       self.models.decoder:maskPadding(sourceSizes, batch.sourceLength, self.opt.beam_size)
     end
@@ -318,8 +331,8 @@ function Translator:translateBatch(batch)
   return allHyp, allFeats, allScores, allAttn, goldScore
 end
 
-function Translator:translate(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
-  local data = self:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
+function Translator:translate(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
+  local data = self:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
   local batch = data:getBatch()
 
   local pred, predFeats, predScore, attn, goldScore = self:translateBatch(batch)

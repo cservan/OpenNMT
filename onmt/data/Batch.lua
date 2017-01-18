@@ -57,11 +57,11 @@ Parameters:
   * `tgt` - 2D table of target batch indices
   * `tgtFeatures` - 2D table of target batch features (opt)
 --]]
-function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
+function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
   src = src or {}
   srcFeatures = srcFeatures or {}
   tgtFeatures = tgtFeatures or {}
-  scores = scores or {}
+  inputScores = inputScores or {}
 
   if tgt ~= nil then
     assert(#src == #tgt, "source and target must have the same batch size")
@@ -73,8 +73,8 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
 
   local sourceSeq = torch.IntTensor(self.sourceLength, self.size):fill(onmt.Constants.PAD)
   
-  if #scores > 0 then
-    self.sourceScores = torch.FloatTensor(self.size, scores[1]:size(1) ):zero()
+  if #inputScores > 0 then
+    self.inputScores = torch.FloatTensor(self.size, inputScores[1]:size(1) ):zero()
   end
   
   self.sourceInput = sourceSeq:clone()
@@ -83,8 +83,8 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
   self.sourceInputFeatures = {}
   self.sourceInputRevFeatures = {}
 
-  -- self.sourceScores = {}
-  -- self.sourceScoresRev = {}
+  -- self.inputScores = {}
+  -- self.inputScoresRev = {}
   
   if #srcFeatures > 0 then
     for _ = 1, #srcFeatures[1] do
@@ -93,10 +93,10 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
     end
   end
 
-  -- if #scores > 0 then
-    -- for _ = 1, #scores[1] do
-      -- table.insert(self.sourceScores, sourceData:clone())
-      -- table.insert(self.sourceScoresRev, sourceData:clone())
+  -- if #inputScores > 0 then
+    -- for _ = 1, #inputScores[1] do
+      -- table.insert(self.inputScores, sourceData:clone())
+      -- table.insert(self.inputScoresRev, sourceData:clone())
     -- end
   -- end
 
@@ -139,8 +139,8 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, scores)
       self.sourceInputRevFeatures[i][{{1, self.sourceSize[b]}, b}]:copy(sourceInputRevFeatures)
     end
 
-    if #scores > 0 then
-        self.sourceScores[b]:copy(scores[b])
+    if #inputScores > 0 then
+        self.inputScores[b]:copy(inputScores[b])
     end
 
     if tgt ~= nil then
@@ -235,11 +235,12 @@ function Batch:getSourceInput(t)
     inputs = { inputs }
     addInputFeatures(inputs, self.sourceInputFeatures, t)
   end
-  if self.sourceScores ~= nil then
+
+  if self.inputScores ~= nil then
     if type(inputs) ~= 'table' then
       inputs = { inputs }
     end
-    table.insert(inputs, self.sourceScores)
+    table.insert(inputs, self.inputScores)
   end
   return inputs
 end
