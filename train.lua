@@ -498,9 +498,9 @@ local function main()
 
   local dataset = torch.load(opt.data, 'binary', false)
 
-  local trainData = onmt.data.Dataset.new(dataset.train.src, dataset.train.tgt)
-  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt)
-
+  local trainData = onmt.data.Dataset.new(dataset.train.src, dataset.train.tgt, dataset.train.scores)
+  local validData = onmt.data.Dataset.new(dataset.valid.src, dataset.valid.tgt, dataset.valid.scores)
+-- Point of where am I today!
   trainData:setBatchSize(opt.max_batch_size)
   validData:setBatchSize(opt.max_batch_size)
 
@@ -513,7 +513,10 @@ local function main()
                    trainData.maxSourceLength, trainData.maxTargetLength)
     _G.logger:info(' * number of training sentences: %d', #trainData.src)
     _G.logger:info(' * maximum batch size: %d', opt.max_batch_size)
-  else
+    _G.logger:info(' * number of training scores: %d', #dataset.train.scores)
+    _G.logger:info(' * number of validation sentences: %d', #validData.src)
+    _G.logger:info(' * number of validation scores: %d', #dataset.valid.scores)
+ else
     local metadata = {
       options = opt,
       vocabSize = {
@@ -528,7 +531,8 @@ local function main()
         source = trainData.maxSourceLength,
         target = trainData.maxTargetLength
       },
-      trainingSentences = #trainData.src
+      trainingSentences = #trainData.src,
+      trainingScores= #dataset.train.scores
     }
 
     onmt.utils.Log.logJson(metadata)
@@ -549,7 +553,7 @@ local function main()
       _G.model.decoder = onmt.Models.loadDecoder(checkpoint.models.decoder, idx > 1)
     else
       local verbose = idx == 1 and not opt.json_log
-      _G.model.encoder = onmt.Models.buildEncoder(opt, dataset.dicts.src)
+      _G.model.encoder = onmt.Models.buildEncoder(opt, dataset.dicts.src, dataset.train.scores)
       _G.model.decoder = onmt.Models.buildDecoder(opt, dataset.dicts.tgt, verbose)
     end
 
