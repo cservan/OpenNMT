@@ -45,16 +45,22 @@ function Translator:__init(args)
   end
 end
 
-function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
+function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
   local srcData = {}
   srcData.words = {}
   srcData.features = {}
 
   local tgtData
+  local inputScoresData
+  
   if goldBatch ~= nil then
     tgtData = {}
     tgtData.words = {}
     tgtData.features = {}
+  end
+
+  if inputScoresBatch ~= nil then
+    inputScoresData = {}
   end
 
   local ignored = {}
@@ -84,9 +90,12 @@ function Translator:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeature
         end
       end
     end
+    if inputScoresBatch ~= nil then
+      table.insert(inputScoresData,inputScoresBatch[b])
+    end
   end
 
-  return onmt.data.Dataset.new(srcData, tgtData), ignored
+  return onmt.data.Dataset.new(srcData, tgtData, inputScoresData), ignored
 end
 
 function Translator:buildTargetTokens(pred, predFeats, src, attn)
@@ -324,8 +333,8 @@ function Translator:translateBatch(batch)
   return allHyp, allFeats, allScores, allAttn, goldScore
 end
 
-function Translator:translate(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
-  local data, ignored = self:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch)
+function Translator:translate(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
+  local data, ignored = self:buildData(srcBatch, srcFeaturesBatch, goldBatch, goldFeaturesBatch, inputScoresBatch)
   local batch = data:getBatch()
 
   local pred, predFeats, predScore, attn, goldScore = self:translateBatch(batch)

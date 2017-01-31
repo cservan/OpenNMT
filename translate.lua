@@ -15,6 +15,7 @@ cmd:text("")
 
 cmd:option('-src', '', [[Source sequence to decode (one line per sequence)]])
 cmd:option('-tgt', '', [[True target sequence (optional)]])
+cmd:option('-scores', '', [[Source scores sequence (optional) one set of scores per sentence]])
 cmd:option('-output', 'pred.txt', [[Path to output the predictions (each line will be the decoded sequence]])
 
 onmt.translate.Translator.declareOpts(cmd)
@@ -55,13 +56,26 @@ local function main()
   local tgtWordsBatch
   local tgtFeaturesBatch
 
+  local inputScoresReader
+  local inputScoresBatch
+  local inputScoresWordsBatch
+  local inputScoresFeaturesBatch
+
   local withGoldScore = opt.tgt:len() > 0
+  local withScores = opt.scores:len() > 0
 
   if withGoldScore then
     tgtReader = onmt.utils.FileReader.new(opt.tgt)
     tgtBatch = {}
     tgtWordsBatch = {}
     tgtFeaturesBatch = {}
+  end
+
+  if withScores then
+    inputScoresReader = onmt.utils.FileReader.new(opt.scores)
+    inputScoresBatch = {}
+    inputScoresWordsBatch = {}
+    inputScoresFeaturesBatch = {}
   end
 
   local translator = onmt.translate.Translator.new(opt)
@@ -89,6 +103,9 @@ local function main()
     if withGoldScore then
       tgtTokens = tgtReader:next()
     end
+    if withScores then
+      inputScoresTokens = inputScoresReader:next()
+    end
 
     if srcTokens ~= nil then
       local srcWords, srcFeats = onmt.utils.Features.extract(srcTokens)
@@ -106,6 +123,17 @@ local function main()
           table.insert(tgtFeaturesBatch, tgtFeats)
         end
       end
+      if withScores then
+        local l_inc=0
+        local localScoresSent={}
+        for l_inc=1,#inputScoresTokens do
+          table.insert(localScoresSent,tonumber(inputScoresTokens[l_inc]))
+        end
+        if #localScoresSent > 0 then
+          table.insert(inputScoresBatch, torch.FloatTensor(localScoresSent))
+          
+        end
+      end
     elseif #srcBatch == 0 then
       break
     end
@@ -116,7 +144,7 @@ local function main()
       end
 
       local predBatch, info = translator:translate(srcWordsBatch, srcFeaturesBatch,
-                                                   tgtWordsBatch, tgtFeaturesBatch)
+                                                   tgtWordsBatch, tgtFeaturesBatch, inputScoresBatch)
 
       if opt.time then
         timer:stop()

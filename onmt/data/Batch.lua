@@ -57,10 +57,11 @@ Parameters:
   * `tgt` - 2D table of target batch indices
   * `tgtFeatures` - 2D table of target batch features (opt)
 --]]
-function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
+function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
   src = src or {}
   srcFeatures = srcFeatures or {}
   tgtFeatures = tgtFeatures or {}
+  inputScores = inputScores or {}
 
   if tgt ~= nil then
     assert(#src == #tgt, "source and target must have the same batch size")
@@ -71,6 +72,11 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
   self.sourceLength, self.sourceSize = getLength(src)
 
   local sourceSeq = torch.IntTensor(self.sourceLength, self.size):fill(onmt.Constants.PAD)
+  
+  if #inputScores > 0 then
+    self.inputScores = torch.FloatTensor(self.size, inputScores[1]:size(1) ):zero()
+  end
+  
   self.sourceInput = sourceSeq:clone()
   self.sourceInputRev = sourceSeq:clone()
 
@@ -121,6 +127,10 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures)
 
       self.sourceInputFeatures[i][{{sourceOffset, self.sourceLength}, b}]:copy(sourceInputFeatures)
       self.sourceInputRevFeatures[i][{{1, self.sourceSize[b]}, b}]:copy(sourceInputRevFeatures)
+    end
+
+    if #inputScores > 0 then
+        self.inputScores[b]:copy(inputScores[b])
     end
 
     if tgt ~= nil then
@@ -216,6 +226,12 @@ function Batch:getSourceInput(t)
     addInputFeatures(inputs, self.sourceInputFeatures, t)
   end
 
+  if self.inputScores ~= nil then
+    if type(inputs) ~= 'table' then
+      inputs = { inputs }
+    end
+    table.insert(inputs, self.inputScores)
+  end
   return inputs
 end
 

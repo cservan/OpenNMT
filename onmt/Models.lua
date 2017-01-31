@@ -28,7 +28,7 @@ local function resolveEmbSizes(opt, dicts, wordSizes)
   return wordEmbSize, featEmbSizes
 end
 
-local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWords)
+local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWords, scores)
   local wordEmbSize, featEmbSizes = resolveEmbSizes(opt, dicts, wordSizes)
 
   local wordEmbedding = onmt.WordEmbedding.new(dicts.words:size(), -- vocab size
@@ -60,6 +60,11 @@ local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWord
     inputSize = inputSize + featEmbedding.outputSize
   end
 
+  if scores ~= nil and #scores > 0 then
+    inputs:add(nn.Identity())
+    inputSize = inputSize + scores[1]:size(1)
+  end
+
   local inputNetwork
 
   if multiInputs then
@@ -73,9 +78,9 @@ local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWord
   return inputNetwork, inputSize
 end
 
-local function buildEncoder(opt, dicts)
+local function buildEncoder(opt, dicts, scores)
   local inputNetwork, inputSize = buildInputNetwork(opt, dicts, opt.src_word_vec_size,
-                                                    opt.pre_word_vecs_enc, opt.fix_word_vecs_enc)
+                                                    opt.pre_word_vecs_enc, opt.fix_word_vecs_enc, scores)
 
   local RNN = onmt.LSTM
   if opt.rnn_type == 'GRU' then

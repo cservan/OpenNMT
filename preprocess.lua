@@ -48,7 +48,7 @@ local function vecToTensor(vec)
   return t
 end
 
-local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
+local function makeData(srcFile, tgtFile, srcDicts, tgtDicts, scoresFile)
   local src = tds.Vec()
   local srcFeatures = tds.Vec()
 
@@ -57,13 +57,25 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
 
   local sizes = tds.Vec()
 
+  local scoresTable = {}
+  local scoresNumber = 0
+  
   local count = 0
   local ignored = 0
 
   local srcReader = onmt.utils.FileReader.new(srcFile)
   local tgtReader = onmt.utils.FileReader.new(tgtFile)
+  local scoresReader 
+  if scoresFile:len() > 0 then
+    scoresReader = onmt.utils.FileReader.new(scoresFile)
+  end
+  
 
   while true do
+    local scoresStr = nil
+    if scoresFile:len() > 0 then
+      scoresStr = scoresReader:next()
+    end
     local srcTokens = srcReader:next()
     local tgtTokens = tgtReader:next()
 
@@ -73,6 +85,14 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
       end
       break
     end
+  if scoresFile:len() > 0 then
+    if scoresStr == nil then
+        if srcTokens ~= nil and tgtTokens ~= nil then
+          print('WARNING: scores and training data do not have the same number of sentences')
+          break
+        end
+    end
+  end
 
     if isValid(srcTokens, opt.src_seq_length) and isValid(tgtTokens, opt.tgt_seq_length) then
       local srcWords, srcFeats = onmt.utils.Features.extract(srcTokens)
@@ -90,7 +110,28 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
       if #tgtDicts.features > 0 then
         tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
       end
-
+      if scoresStr ~= nil then
+          scoresNumber=#scoresStr
+          local l_inc=0
+          local localScoresWords={}
+          local localScoresSent={}
+          for l_inc=1,#scoresStr do
+            table.insert(localScoresSent,tonumber(scoresStr[l_inc]))
+          end
+          local l_inc_wds=0
+          -- for l_inc_wds=1,#srcWords do
+            -- if localScoresWords == nil then
+                -- print ('nil value')
+-- --             else
+-- --                 print ('TEST BEGIN')
+-- --                 print (localScoresWords)
+-- --                 print ('TEST END')
+            -- end            
+            -- table.insert(localScoresSent,localScoresWords)
+          -- end
+--           print (localScoresSent)
+          table.insert(scoresTable,torch.FloatTensor(localScoresSent))
+      end
       sizes:insert(#srcWords)
     else
       ignored = ignored + 1
@@ -105,6 +146,9 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
 
   srcReader:close()
   tgtReader:close()
+  if scoresFile:len() > 0 then
+    scoresReader:close()
+  end
 
   local function reorderData(perm)
     src = onmt.utils.Table.reorder(src, perm, true)
@@ -115,6 +159,14 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
     end
     if #tgtDicts.features > 0 then
       tgtFeatures = onmt.utils.Table.reorder(tgtFeatures, perm, true)
+    end
+    if #scoresTable > 0 then
+        local newTab = {}
+        local l_inc = 0
+        for l_inc = 1, #scoresTable do
+          table.insert(newTab,scoresTable[perm[l_inc]])
+        end
+     scoresTable=newTab
     end
   end
 
@@ -143,7 +195,7 @@ local function makeData(srcFile, tgtFile, srcDicts, tgtDicts)
     features = tgtFeatures
   }
 
-  return srcData, tgtData
+  return srcData, tgtData, scoresTable
 end
 
 local function main()
@@ -171,14 +223,14 @@ local function main()
 
   _G.logger:info('Preparing training data...')
   data.train = {}
-  data.train.src, data.train.tgt = makeData(opt.train_src, opt.train_tgt,
-                                            data.dicts.src, data.dicts.tgt)
+  data.train.src, data.train.tgt, data.train.scores = makeData(opt.train_src, opt.train_tgt,
+                                            data.dicts.src, data.dicts.tgt, opt.train_scores)
   _G.logger:info('')
 
   _G.logger:info('Preparing validation data...')
   data.valid = {}
-  data.valid.src, data.valid.tgt = makeData(opt.valid_src, opt.valid_tgt,
-                                            data.dicts.src, data.dicts.tgt)
+  data.valid.src, data.valid.tgt, data.valid.scores  = makeData(opt.valid_src, opt.valid_tgt,
+                                            data.dicts.src, data.dicts.tgt, opt.valid_scores)
   _G.logger:info('')
 
   if opt.src_vocab:len() == 0 then
