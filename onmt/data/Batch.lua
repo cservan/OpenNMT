@@ -57,10 +57,12 @@ Parameters:
   * `tgt` - 2D table of target batch indices
   * `tgtFeatures` - 2D table of target batch features (opt)
 --]]
-function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
+function Batch:__init(src, srcFeatures, srcDomains, tgt, tgtFeatures, tgtDomains)
   src = src or {}
   srcFeatures = srcFeatures or {}
   tgtFeatures = tgtFeatures or {}
+  srcDomains = srcDomains or {}
+  tgtDomains = tgtDomains or {}
   inputScores = inputScores or {}
 
   if tgt ~= nil then
@@ -71,21 +73,18 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
 
   self.sourceLength, self.sourceSize = getLength(src)
 
-  local sourceSeq = torch.IntTensor(self.sourceLength, self.size):fill(onmt.Constants.PAD)
-  
+  local sourceSeq = torch.LongTensor(self.sourceLength, self.size):fill(onmt.Constants.PAD)
+
   if #inputScores > 0 then
     self.inputScores = torch.FloatTensor(self.size, inputScores[1]:size(1) ):zero()
   end
-  
+
   self.sourceInput = sourceSeq:clone()
   self.sourceInputRev = sourceSeq:clone()
 
   self.sourceInputFeatures = {}
   self.sourceInputRevFeatures = {}
 
-  -- self.inputScores = {}
-  -- self.inputScoresRev = {}
-  
   if #srcFeatures > 0 then
     for _ = 1, #srcFeatures[1] do
       table.insert(self.sourceInputFeatures, sourceSeq:clone())
@@ -93,17 +92,14 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
     end
   end
 
-  -- if #inputScores > 0 then
-    -- for _ = 1, #inputScores[1] do
-      -- table.insert(self.inputScores, sourceData:clone())
-      -- table.insert(self.inputScoresRev, sourceData:clone())
-    -- end
-  -- end
+  if #srcDomains > 0 then
+    self.sourceDomainInput = torch.LongTensor(self.size):fill(onmt.Constants.PAD)
+  end
 
   if tgt ~= nil then
     self.targetLength, self.targetSize, self.targetNonZeros = getLength(tgt, 1)
 
-    local targetSeq = torch.IntTensor(self.targetLength, self.size):fill(onmt.Constants.PAD)
+    local targetSeq = torch.LongTensor(self.targetLength, self.size):fill(onmt.Constants.PAD)
     self.targetInput = targetSeq:clone()
     self.targetOutput = targetSeq:clone()
 
@@ -116,6 +112,10 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
         table.insert(self.targetOutputFeatures, targetSeq:clone())
       end
     end
+  end
+
+  if #tgtDomains > 0 then
+    self.targetDomainInput = torch.LongTensor(self.size):fill(onmt.Constants.PAD)
   end
 
   for b = 1, self.size do
@@ -137,6 +137,10 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
 
       self.sourceInputFeatures[i][{{sourceOffset, self.sourceLength}, b}]:copy(sourceInputFeatures)
       self.sourceInputRevFeatures[i][{{1, self.sourceSize[b]}, b}]:copy(sourceInputRevFeatures)
+    end
+
+    if #srcDomains > 0 then
+      self.sourceDomainInput[b] = srcDomains[b]
     end
 
     if #inputScores > 0 then
@@ -161,6 +165,10 @@ function Batch:__init(src, srcFeatures, tgt, tgtFeatures, inputScores)
         self.targetInputFeatures[i][{{1, targetLength}, b}]:copy(targetInputFeatures)
         self.targetOutputFeatures[i][{{1, targetLength}, b}]:copy(targetOutputFeatures)
       end
+    end
+
+    if #tgtDomains > 0 then
+      self.targetDomainInput[b] = tgtDomains[b]
     end
   end
 end
@@ -242,6 +250,14 @@ function Batch:getSourceInput(t)
     end
     table.insert(inputs, self.inputScores)
   end
+
+  if self.sourceDomainInput then
+    if type(inputs) ~= 'table' then
+      inputs = { inputs }
+    end
+    table.insert(inputs, self.sourceDomainInput)
+  end
+
   return inputs
 end
 
@@ -253,6 +269,13 @@ function Batch:getTargetInput(t)
   if #self.targetInputFeatures > 0 then
     inputs = { inputs }
     addInputFeatures(inputs, self.targetInputFeatures, t)
+  end
+
+  if self.targetDomainInput then
+    if type(inputs) ~= 'table' then
+      inputs = { inputs }
+    end
+    table.insert(inputs, self.targetDomainInput)
   end
 
   return inputs

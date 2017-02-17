@@ -15,7 +15,7 @@ accuracy. Features include:
 
 * Speed and memory optimizations for high-performance GPU training.
 * Simple general-purpose interface, only requires and source/target data files.
-* C-only decoder implementation for easy deployment.
+* [C++ implementation of the translator](https://github.com/OpenNMT/CTranslate) for easy deployment.
 * Extensions to allow other sequence generation tasks such as summarization and image captioning.
 
 ## Installation
@@ -55,6 +55,20 @@ OpenNMT consists of three commands:
 ```th translate.lua -model model_final.t7 -src data/src-test.txt -output pred.txt```
 
 See the <a href="http://opennmt.github.io/Guide">guide</a> for more details.
+
+## Citation
+
+A <a href="https://arxiv.org/abs/1701.02810">technical report</a> on OpenNMT is available. If you use the system for academic work, please cite:
+
+```
+    @ARTICLE{2017opennmt,
+         author = { {Klein}, G. and {Kim}, Y. and {Deng}, Y. 
+                    and {Senellart}, J. and {Rush}, A.~M.},
+         title = "{OpenNMT: Open-Source Toolkit 
+                   for Neural Machine Translation}",
+         journal = {ArXiv e-prints},
+         eprint = {1701.02810} }
+```
 
 ## Documentation
 

@@ -4,10 +4,11 @@ local Dataset = torch.class("Dataset")
 --[[ Initialize a data object given aligned tables of IntTensors `srcData`
   and `tgtData`.
 --]]
-function Dataset:__init(srcData, tgtData, scoreData)
+function Dataset:__init(srcData, tgtData)
 
   self.src = srcData.words
   self.srcFeatures = srcData.features
+  self.srcDomains = srcData.domains or {}
 
   if tgtData ~= nil then
     self.tgt = tgtData.words
@@ -16,7 +17,8 @@ function Dataset:__init(srcData, tgtData, scoreData)
   if scoreData ~= nil then
       self.scores = scoreData
   end
-  
+
+  self.tgtDomains = tgtData.domains or {}
 end
 
 --[[ Setup up the training data to respect `maxBatchSize`. ]]
@@ -50,56 +52,87 @@ function Dataset:setBatchSize(maxBatchSize)
 
     self.maxSourceLength = math.max(self.maxSourceLength, self.src[i]:size(1))
 
-    -- Target contains <s> and </s>.
-    local targetSeqLength = self.tgt[i]:size(1) - 1
-    targetLength = math.max(targetLength, targetSeqLength)
-    self.maxTargetLength = math.max(self.maxTargetLength, targetSeqLength)
+    if self.tgt ~= nil then
+      -- Target contains <s> and </s>.
+      local targetSeqLength = self.tgt[i]:size(1) - 1
+      targetLength = math.max(targetLength, targetSeqLength)
+      self.maxTargetLength = math.max(self.maxTargetLength, targetSeqLength)
+    end
   end
+  -- Catch last batch.
+  table.insert(self.batchRange, { ["begin"] = offset, ["end"] = #self.src })
 end
 
 --[[ Return number of batches. ]]
 function Dataset:batchCount()
   if self.batchRange == nil then
-    return 1
+    if #self.src > 0 then
+      return 1
+    else
+      return 0
+    end
   end
   return #self.batchRange
 end
 
 --[[ Get `Batch` number `idx`. If nil make a batch of all the data. ]]
 function Dataset:getBatch(idx)
+  if #self.src == 0 then
+    return nil
+  end
+
   if idx == nil or self.batchRange == nil then
-    return onmt.data.Batch.new(self.src, self.srcFeatures, self.tgt, self.tgtFeatures, self.scores)
+    return onmt.data.Batch.new(self.src, self.srcFeatures, self.srcDomains,
+                               self.tgt, self.tgtFeatures, self.tgtDomains, self.scores)
   end
 
   local rangeStart = self.batchRange[idx]["begin"]
   local rangeEnd = self.batchRange[idx]["end"]
 
   local src = {}
-  local tgt = {}
+  local tgt
+
+  if self.tgt ~= nil then
+    tgt = {}
+  end
 
   local srcFeatures = {}
   local tgtFeatures = {}
 
   local scores = {}
 
+  local srcDomains = {}
+  local tgtDomains = {}
+
   for i = rangeStart, rangeEnd do
     table.insert(src, self.src[i])
-    table.insert(tgt, self.tgt[i])
 
     if self.srcFeatures[i] then
       table.insert(srcFeatures, self.srcFeatures[i])
     end
 
-    if self.tgtFeatures[i] then
-      table.insert(tgtFeatures, self.tgtFeatures[i])
+    if self.tgt ~= nil then
+      table.insert(tgt, self.tgt[i])
+
+      if self.tgtFeatures[i] then
+        table.insert(tgtFeatures, self.tgtFeatures[i])
+      end
     end
-    
+
     if self.scores[i] then
       table.insert(scores, self.scores[i])
     end
+
+    if self.srcDomains[i] then
+      table.insert(srcDomains, self.srcDomains[i])
+    end
+
+    if self.tgtDomains[i] then
+      table.insert(tgtDomains, self.tgtDomains[i])
+    end
   end
 
-  return onmt.data.Batch.new(src, srcFeatures, tgt, tgtFeatures, scores)
+  return onmt.data.Batch.new(src, srcFeatures, srcDomains, tgt, tgtFeatures, tgtDomains, scores)
 end
 
 return Dataset
