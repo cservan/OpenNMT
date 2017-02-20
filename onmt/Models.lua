@@ -28,7 +28,7 @@ local function resolveEmbSizes(opt, dicts, wordSizes)
   return wordEmbSize, featEmbSizes
 end
 
-local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWords)
+local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWords, scores)
   local wordEmbSize, featEmbSizes = resolveEmbSizes(opt, dicts, wordSizes)
 
   local wordEmbedding = onmt.WordEmbedding.new(dicts.words:size(), -- vocab size
@@ -61,7 +61,9 @@ local function buildInputNetwork(opt, dicts, wordSizes, pretrainedWords, fixWord
   end
 
   if scores ~= nil and #scores > 0 then
-    inputs:add(nn.Identity())
+    l_scorenn=nn.Identity()
+    -- l_scorenn.gradWeight = nil
+    inputs:add(l_scorenn)
     inputSize = inputSize + scores[1]:size(1)
   end
 

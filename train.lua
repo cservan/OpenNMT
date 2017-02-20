@@ -516,9 +516,13 @@ local function main()
                    trainData.maxSourceLength, trainData.maxTargetLength)
     _G.logger:info(' * number of training sentences: %d', #trainData.src)
     _G.logger:info(' * maximum batch size: %d', opt.max_batch_size)
-    _G.logger:info(' * number of training scores: %d', #dataset.train.scores)
+    if dataset.train.scores then
+      _G.logger:info(' * number of training scores: %d', #dataset.train.scores)
+    end
     _G.logger:info(' * number of validation sentences: %d', #validData.src)
-    _G.logger:info(' * number of validation scores: %d', #dataset.valid.scores)
+    if dataset.train.scores then
+      _G.logger:info(' * number of validation scores: %d', #dataset.valid.scores)
+    end
  else
     local metadata = {
       options = opt,

@@ -57,7 +57,7 @@ Parameters:
   * `tgt` - 2D table of target batch indices
   * `tgtFeatures` - 2D table of target batch features (opt)
 --]]
-function Batch:__init(src, srcFeatures, srcDomains, tgt, tgtFeatures, tgtDomains)
+function Batch:__init(src, srcFeatures, srcDomains, tgt, tgtFeatures, tgtDomains, inputScores)
   src = src or {}
   srcFeatures = srcFeatures or {}
   tgtFeatures = tgtFeatures or {}

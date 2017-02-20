@@ -140,6 +140,7 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
       if #tgtDicts.features > 0 then
         tgtFeatures:insert(onmt.utils.Features.generateTarget(tgtDicts.features, tgtFeats, true))
       end
+
       if scoresStr ~= nil then
           scoresNumber=#scoresStr
           local l_inc=0
@@ -149,6 +150,7 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
             table.insert(localScoresSent,tonumber(scoresStr[l_inc]))
           end
           local l_inc_wds=0
+          table.insert(scoresTable,torch.FloatTensor(localScoresSent))
       end
       if srcDomain then
         srcDomains:insert(srcDicts.domains:lookup(srcDomain[1]))
@@ -271,7 +273,7 @@ local function main()
 
   _G.logger:info('Preparing training data...')
   data.train = {}
-  data.train.src, data.train.tgt = makeData(opt.train_src,
+  data.train.src, data.train.tgt, data.train.scores = makeData(opt.train_src,
                                             opt.train_src_domains,
                                             data.dicts.src,
                                             opt.train_tgt,
@@ -282,7 +284,7 @@ local function main()
 
   _G.logger:info('Preparing validation data...')
   data.valid = {}
-  data.valid.src, data.valid.tgt = makeData(opt.valid_src,
+  data.valid.src, data.valid.tgt, data.valid.scores = makeData(opt.valid_src,
                                             opt.valid_src_domains,
                                             data.dicts.src,
                                             opt.valid_tgt,
@@ -290,7 +292,7 @@ local function main()
                                             data.dicts.tgt,
                                             opt.train_scores)
   _G.logger:info('')
-
+  
   if opt.src_vocab:len() == 0 then
     Vocabulary.save('source', data.dicts.src.words, opt.save_data .. '.src.dict')
   end

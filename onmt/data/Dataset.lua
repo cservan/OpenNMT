@@ -4,7 +4,7 @@ local Dataset = torch.class("Dataset")
 --[[ Initialize a data object given aligned tables of IntTensors `srcData`
   and `tgtData`.
 --]]
-function Dataset:__init(srcData, tgtData)
+function Dataset:__init(srcData, tgtData, scoreData)
 
   self.src = srcData.words
   self.srcFeatures = srcData.features
