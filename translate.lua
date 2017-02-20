@@ -134,6 +134,7 @@ local function main()
         if #localScoresSent > 0 then
           srcBatch[#srcBatch].inputScores=torch.FloatTensor(localScoresSent)
         end
+      end
     elseif #srcBatch == 0 then
       break
     end
