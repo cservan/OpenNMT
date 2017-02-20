@@ -78,6 +78,7 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
   local scoresReader
   if scoresFile:len() > 0 then
     scoresReader = onmt.utils.FileReader.new(scoresFile)
+  end
 
   local srcDomainsReader
   local tgtDomainsReader
@@ -113,14 +114,15 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
       end
       break
     end
-  if scoresFile:len() > 0 then
-    if scoresStr == nil then
-        if srcTokens ~= nil and tgtTokens ~= nil then
-          print('WARNING: scores and training data do not have the same number of sentences')
-          break
-        end
+  
+    if scoresFile:len() > 0 then
+      if scoresStr == nil then
+          if srcTokens ~= nil and tgtTokens ~= nil then
+            print('WARNING: scores and training data do not have the same number of sentences')
+            break
+          end
+      end
     end
-  end
 
     if isValid(srcTokens, opt.src_seq_length) and isValid(tgtTokens, opt.tgt_seq_length) then
       local srcWords, srcFeats = onmt.utils.Features.extract(srcTokens)
@@ -147,7 +149,7 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
             table.insert(localScoresSent,tonumber(scoresStr[l_inc]))
           end
           local l_inc_wds=0
-
+      end
       if srcDomain then
         srcDomains:insert(srcDicts.domains:lookup(srcDomain[1]))
       end
@@ -171,6 +173,7 @@ local function makeData(srcFile, srcDomainsFile, srcDicts, tgtFile, tgtDomainsFi
   tgtReader:close()
   if scoresFile:len() > 0 then
     scoresReader:close()
+  end
 
   if srcDomainsReader then
     srcDomainsReader:close()
