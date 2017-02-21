@@ -67,8 +67,12 @@ local function main()
 
   local goldReader
   local goldBatch
+  local withScores = false
 
   local withGoldScore = opt.tgt:len() > 0
+  if opt.scores:len() > 0 then
+    withScores = true
+  end
 
   if withGoldScore then
     goldReader = onmt.utils.FileReader.new(opt.tgt)
@@ -106,7 +110,7 @@ local function main()
     end
 
     if withScores then
-      inputScoresTokens = inputScoresReader:next()
+      inputScoresData = inputScoresReader:next()
     end
 
     local srcDomain
@@ -128,8 +132,8 @@ local function main()
       if withScores then
         local l_inc=0
         local localScoresSent={}
-        for l_inc=1,#inputScoresTokens do
-          table.insert(localScoresSent,tonumber(inputScoresTokens[l_inc]))
+        for l_inc=1,#inputScoresData do
+          table.insert(localScoresSent,tonumber(inputScoresData[l_inc]))
         end
         if #localScoresSent > 0 then
           srcBatch[#srcBatch].inputScores=torch.FloatTensor(localScoresSent)

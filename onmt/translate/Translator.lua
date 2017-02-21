@@ -91,9 +91,11 @@ function Translator:buildData(src, gold)
   local ignored = {}
   local indexMap = {}
   local index = 1
+  local inputScoresBatch = false
 
   if src[1].inputScores ~= nil then
     inputScoresData = {}
+    inputScoresBatch = true
   end
 
 
