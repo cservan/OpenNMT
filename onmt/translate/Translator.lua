@@ -91,11 +91,9 @@ function Translator:buildData(src, gold)
   local ignored = {}
   local indexMap = {}
   local index = 1
-  local inputScoresBatch = false
 
   if src[1].inputScores ~= nil then
     inputScoresData = {}
-    inputScoresBatch = true
   end
 
 
@@ -134,7 +132,7 @@ function Translator:buildData(src, gold)
         end
       end
     end
-    if inputScoresBatch ~= nil then
+    if inputScoresData ~= nil then
       table.insert(inputScoresData,src[b].inputScores)
     end
   end
