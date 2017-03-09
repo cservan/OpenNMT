@@ -116,14 +116,14 @@ local function main()
     local srcDomain
     local tgtDomain
 
-    if srcDomainReader then
-      srcDomain = srcDomainReader:next()[1]
-    end
-    if tgtDomainReader then
-      tgtDomain = tgtDomainReader:next()[1]
-    end
-
     if srcTokens ~= nil then
+      if srcDomainReader then
+        srcDomain = srcDomainReader:next()[1]
+      end
+      if tgtDomainReader then
+        tgtDomain = tgtDomainReader:next()[1]
+      end
+      
       table.insert(srcBatch, translator:buildInput(srcTokens, srcDomain, tgtDomain))
 
       if withGoldScore then
