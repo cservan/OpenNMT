@@ -290,7 +290,7 @@ local function main()
                                             opt.valid_tgt,
                                             opt.valid_tgt_domains,
                                             data.dicts.tgt,
-                                            opt.train_scores)
+                                            opt.valid_scores)
   _G.logger:info('')
   
   if opt.src_vocab:len() == 0 then
